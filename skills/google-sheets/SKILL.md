@@ -16,7 +16,7 @@ This skill requires OAuth login. If a command returns an auth error, tell the us
    export GOOGLE_CLIENT_ID="your-client-id"
    export GOOGLE_CLIENT_SECRET="your-client-secret"
    ```
-2. Run `gtools-cli login` to authenticate.
+2. Run `gtools-cli login` to authenticate. The default scopes are read-only; pass `--write` (`gtools-cli login --write`) if you also need write access.
 
 If `gtools-cli` is not found, run `bun link` inside the gtools-cli repo directory first.
 
