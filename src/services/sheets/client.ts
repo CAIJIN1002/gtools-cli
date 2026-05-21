@@ -29,3 +29,67 @@ export async function batchGetValues(
   });
   return res.data;
 }
+
+/**
+ * Add a new tab/sheet to an existing spreadsheet. Returns the created
+ * sheet's id and final title (Google may suffix the title if a sheet by
+ * that name already exists — but we only call this when we've verified
+ * the title is free, so the returned title should match the requested
+ * one unless racing against another writer).
+ */
+export async function addSheet(
+  auth: AuthClient,
+  spreadsheetId: string,
+  title: string,
+): Promise<{ sheetId: number; title: string }> {
+  const res = await sheets.spreadsheets.batchUpdate({
+    auth,
+    spreadsheetId,
+    requestBody: {
+      requests: [{ addSheet: { properties: { title } } }],
+    },
+  });
+  const reply = res.data.replies?.[0]?.addSheet?.properties;
+  if (!reply || reply.sheetId == null || !reply.title) {
+    throw new Error(`addSheet response missing sheetId/title: ${JSON.stringify(res.data)}`);
+  }
+  return { sheetId: reply.sheetId, title: reply.title };
+}
+
+/** Wipe a sheet's cells (everything in the tab). Tab itself stays. */
+export async function clearSheet(
+  auth: AuthClient,
+  spreadsheetId: string,
+  tabTitle: string,
+): Promise<void> {
+  await sheets.spreadsheets.values.clear({
+    auth,
+    spreadsheetId,
+    range: tabTitle,
+  });
+}
+
+/**
+ * Write a 2D string array to ``<tabTitle>!A1`` using RAW input. RAW
+ * preserves the strings exactly — no auto-typing of numbers or dates —
+ * which is what we want for backtest CSVs: the user may want to parse
+ * dates / numbers themselves, and Google's auto-detection has bitten us
+ * on currency-like cells. If a future caller needs Sheets to interpret
+ * cells (e.g. '=A1+B1' formulas), add a separate ``writeRowsParsed`` fn.
+ */
+export async function writeRows(
+  auth: AuthClient,
+  spreadsheetId: string,
+  tabTitle: string,
+  rows: string[][],
+): Promise<{ updatedCells: number }> {
+  if (rows.length === 0) return { updatedCells: 0 };
+  const res = await sheets.spreadsheets.values.update({
+    auth,
+    spreadsheetId,
+    range: `${tabTitle}!A1`,
+    valueInputOption: 'RAW',
+    requestBody: { values: rows },
+  });
+  return { updatedCells: res.data.updatedCells ?? 0 };
+}
