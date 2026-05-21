@@ -26,6 +26,11 @@ export interface ParsedArgs {
   fromContainer?: string;
   toContainer?: string;
   fromFile?: string;
+  // sheets push-csv / push-dir flags
+  csv?: string;
+  dir?: string;
+  tab?: string;
+  clear?: boolean;
 }
 
 export function parseCliArgs(argv: string[]): ParsedArgs & { error?: string } {
@@ -72,6 +77,14 @@ export function parseCliArgs(argv: string[]): ParsedArgs & { error?: string } {
       result.toContainer = argv[++i];
     } else if (argv[i] === '--from-file' && argv[i + 1]) {
       result.fromFile = argv[++i];
+    } else if (argv[i] === '--csv' && argv[i + 1]) {
+      result.csv = argv[++i];
+    } else if (argv[i] === '--dir' && argv[i + 1]) {
+      result.dir = argv[++i];
+    } else if (argv[i] === '--tab' && argv[i + 1]) {
+      result.tab = argv[++i];
+    } else if (argv[i] === '--clear') {
+      result.clear = true;
     } else if (argv[i] === '--skills') {
       result.skills = true;
     }

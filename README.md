@@ -4,7 +4,7 @@ A command-line tool for interacting with Google services. Currently supports:
 
 - **Google Tag Manager (GTM)** — containers, tags, triggers, variables, and custom templates
 - **Google Docs** — read document content as plain text
-- **Google Sheets** — read spreadsheet values across all tabs
+- **Google Sheets** — read spreadsheet values across all tabs; push CSV files into tabs
 
 Built with [Bun](https://bun.sh) and the Google APIs.
 
@@ -37,7 +37,7 @@ source ~/.zshrc
 Required OAuth scopes (requested automatically on login):
 - `tagmanager.edit.containers` — edit GTM containers (but not publish)
 - `documents.readonly` — read Google Docs
-- `spreadsheets.readonly` — read Google Sheets
+- `spreadsheets.readonly` — read Google Sheets (upgraded to `spreadsheets` with `--write` so `push-csv` / `push-dir` can write)
 
 **3. Register as a global command**
 
@@ -111,6 +111,8 @@ https://docs.google.com/document/d/1aBcDeFg.../edit
 | Command | Flags | Description |
 |---------|-------|-------------|
 | `sheets get` | `--id <spreadsheetId>` | Read all tabs in a spreadsheet. Output: `{ spreadsheetId, title, sheets: [{ title, rows }] }` |
+| `sheets push-csv` | `--id <spreadsheetId> --csv <path> [--tab <name>] [--clear]` | Push a single CSV file into one tab. Tab title defaults to the filename (sans `.csv`); use `--tab` to override. `--clear` wipes the tab before writing — useful when re-uploading shrinking data so stale rows past the new range don't linger. Tab is created if it doesn't exist. Requires `--write` scopes (run `gtools-cli login --write`). |
+| `sheets push-dir` | `--id <spreadsheetId> --dir <path> [--clear]` | Push every `*.csv` in a directory into separate tabs of one spreadsheet. Tab titles are taken from filenames. Writes run serially with a small inter-call delay to stay under Sheets' per-spreadsheet write quota. Requires `--write` scopes. |
 
 The spreadsheet ID is the part between `/d/` and `/edit` in a Google Sheets URL:
 ```
@@ -174,6 +176,19 @@ gtools-cli docs get --id 1aBcDeFgHiJkLmNoPqRsTuVwXyZ
 
 # Read every tab's values from a spreadsheet
 gtools-cli sheets get --id 1aBcDeFgHiJkLmNoPqRsTuVwXyZ
+
+# Push a single CSV into a tab (creates the tab if missing; default
+# tab title = CSV filename without ".csv")
+gtools-cli sheets push-csv --id 1aBcDeFgHiJkLmNoPqRsTuVwXyZ \
+  --csv ./report.csv
+
+# Same, but write into a tab named "Q1 Summary" and wipe it first
+gtools-cli sheets push-csv --id 1aBcDeFgHiJkLmNoPqRsTuVwXyZ \
+  --csv ./report.csv --tab "Q1 Summary" --clear
+
+# Push every *.csv in a directory into the same spreadsheet, one tab per file
+gtools-cli sheets push-dir --id 1aBcDeFgHiJkLmNoPqRsTuVwXyZ \
+  --dir ./backtest_results
 ```
 
 ## Development
